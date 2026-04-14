@@ -246,6 +246,81 @@ async function aylikRapor() {
   } catch (err) { console.error('Aylik rapor hatasi:', err.message); }
 }
 
+// DOGUM GUNU BILDIRIMI — her ayin 1'inde bu ay dogum gunu olanlar
+async function dogumGunuBildirimi() {
+  console.log('Dogum gunu bildirimi calisiyor...');
+  try {
+    const bdayDb = await loadData('byp_bday_db');
+    if (!bdayDb || !bdayDb.length) {
+      await sendTelegram('<b>Dogum Gunu Bildirimi</b>\nKayitli dogum gunu verisi bulunamadi.');
+      return;
+    }
+
+    const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
+    const currentMonth = now.getMonth(); // 0-11
+    const ayAdi = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+
+    // Bu ay dogum gunu olanlar
+    const thisMonth = [];
+    bdayDb.forEach(function(entry) {
+      // Ana kisi
+      if (entry.main && entry.main.birthday) {
+        const bday = new Date(entry.main.birthday);
+        if (bday.getMonth() === currentMonth) {
+          thisMonth.push({
+            name: entry.main.name || entry.customer || '-',
+            phone: entry.main.phone || entry.phone || '-',
+            day: bday.getDate(),
+            birthday: bday.toLocaleDateString('tr-TR', {day:'numeric', month:'long'}),
+            orderNo: entry.orderNo || '-'
+          });
+        }
+      }
+      // Aile uyeleri
+      if (entry.family && Array.isArray(entry.family)) {
+        entry.family.forEach(function(f) {
+          if (f.birthday) {
+            const fbday = new Date(f.birthday);
+            if (fbday.getMonth() === currentMonth) {
+              thisMonth.push({
+                name: f.name || '-',
+                phone: f.phone || entry.main?.phone || '-',
+                day: fbday.getDate(),
+                birthday: fbday.toLocaleDateString('tr-TR', {day:'numeric', month:'long'}),
+                orderNo: entry.orderNo || '-',
+                relation: '(aile uyesi: ' + (entry.main?.name || entry.customer || '') + ')'
+              });
+            }
+          }
+        });
+      }
+    });
+
+    if (thisMonth.length === 0) {
+      await sendTelegram('<b>Dogum Gunu Bildirimi</b>\n' + ayAdi + '\n\nBu ay dogum gunu olan kayitli musteri bulunmadi.');
+      return;
+    }
+
+    // Gune gore sirala
+    thisMonth.sort(function(a, b) { return a.day - b.day; });
+
+    let msg = '<b>BY Pasta - Dogum Gunu Bildirimi</b>\n';
+    msg += ayAdi + '\n\n';
+    msg += 'Bu ay <b>' + thisMonth.length + '</b> kisinin dogum gunu var:\n\n';
+
+    thisMonth.forEach(function(p, i) {
+      msg += (i + 1) + '. <b>' + p.name + '</b> — ' + p.birthday + '\n';
+      msg += '   Tel: ' + p.phone;
+      if (p.relation) msg += ' ' + p.relation;
+      msg += '\n\n';
+    });
+
+    msg += 'Musterilerinize dogum gunu surprizi yapmayi unutmayin!';
+
+    await sendTelegram(msg);
+  } catch (err) { console.error('Dogum gunu bildirimi hatasi:', err.message); }
+}
+
 const app = express();
 app.use(express.json());
 app.use((req, res, next) => {
@@ -261,6 +336,7 @@ app.get('/test', async (req, res) => { try { await sendTelegram('BY Pasta Rapor 
 app.post('/gun-sonu', async (req, res) => { await gunSonuRaporu(); res.json({ ok: true }); });
 app.post('/haftalik', async (req, res) => { await haftalikRapor(); res.json({ ok: true }); });
 app.post('/aylik', async (req, res) => { await aylikRapor(); res.json({ ok: true }); });
+app.post('/dogum-gunu', async (req, res) => { await dogumGunuBildirimi(); res.json({ ok: true }); });
 
 // CRON: Aksam 20:00 Turkiye
 cron.schedule('0 20 * * *', () => { console.log('CRON: Gun sonu raporu'); gunSonuRaporu(); }, { timezone: 'Europe/Istanbul' });
@@ -275,7 +351,10 @@ cron.schedule('0 22 28-31 * *', () => {
   if (tomorrow.getDate() === 1) { console.log('CRON: Aylik rapor'); aylikRapor(); }
 }, { timezone: 'Europe/Istanbul' });
 
+// CRON: Her ayin 1'i saat 09:00 — dogum gunu bildirimi
+cron.schedule('0 9 1 * *', () => { console.log('CRON: Dogum gunu bildirimi'); dogumGunuBildirimi(); }, { timezone: 'Europe/Istanbul' });
+
 app.listen(PORT, () => {
   console.log('BY Pasta Rapor Bot - Port: ' + PORT);
-  console.log('Cron: Aksam 20:00 (gun sonu), Pazartesi 09:00 (haftalik), Ayin son gunu 22:00 (aylik)');
+  console.log('Cron: 20:00 gun sonu, Pzt 09:00 haftalik, Ayin sonu 22:00 aylik, Ayin 1i 09:00 dogum gunu');
 });
