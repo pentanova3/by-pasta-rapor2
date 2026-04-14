@@ -7,7 +7,10 @@ const TELEGRAM_TOKEN = '8625001432:AAE30hy3IZgmDJ4NoThjKgd_0QlDExSpTk8';
 const CHAT_ID = '-5282486977';
 const PORT = process.env.PORT || 8080;
 
-admin.initializeApp({ projectId: 'by-pasta-siparis' });
+admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SA || '{}')),
+  projectId: 'by-pasta-siparis'
+});
 const db = admin.firestore();
 
 async function loadData(key) {
