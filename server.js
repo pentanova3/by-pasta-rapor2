@@ -154,6 +154,98 @@ async function haftalikRapor() {
   } catch (err) { console.error('Haftalik rapor hatasi:', err.message); }
 }
 
+// AYLIK RAPOR
+async function aylikRapor() {
+  console.log('Aylik rapor calisiyor...');
+  try {
+    const orders = await loadData('byp_orders');
+    if (!orders) { await sendTelegram('<b>Aylik Rapor</b>\nVeri okunamadi.'); return; }
+
+    const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const monthStart = year + '-' + String(month + 1).padStart(2, '0') + '-01';
+    const monthEnd = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(new Date(year, month + 1, 0).getDate()).padStart(2, '0');
+    const ayAdi = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+
+    const monthOrders = orders.filter(o => o.createdAt && o.createdAt.split('T')[0] >= monthStart && o.createdAt.split('T')[0] <= monthEnd);
+    const delivered = monthOrders.filter(o => o.status === 'teslim');
+    const cancelled = monthOrders.filter(o => o.status === 'iptal');
+    const undelivered = monthOrders.filter(o => o.status === 'teslim_edilemedi');
+    const revenue = delivered.reduce((s, o) => s + (o.discounted || o.price || 0), 0);
+    const collected = delivered.reduce((s, o) => s + (o.paid || 0), 0);
+
+    let msg = '<b>BY Pasta - Aylik Rapor</b>\n';
+    msg += ayAdi + '\n\n';
+    msg += '<b>Genel Ozet:</b>\n';
+    msg += 'Toplam siparis: <b>' + monthOrders.length + '</b>\n';
+    msg += 'Teslim edilen: <b>' + delivered.length + '</b>\n';
+    msg += 'Iptal edilen: <b>' + cancelled.length + '</b>\n';
+    msg += 'Teslim edilemeyen: <b>' + undelivered.length + '</b>\n\n';
+
+    msg += '<b>Ciro Bilgileri:</b>\n';
+    msg += 'Aylik ciro: <b>' + fMoney(revenue) + '</b>\n';
+    msg += 'Tahsil edilen: ' + fMoney(collected) + '\n';
+    if (revenue - collected > 0) msg += 'Kalan bakiye: ' + fMoney(revenue - collected) + '\n';
+    msg += '\n';
+
+    if (monthOrders.length > 0) {
+      msg += '<b>Oranlar:</b>\n';
+      msg += 'Teslim orani: %' + Math.round(delivered.length / monthOrders.length * 100) + '\n';
+      msg += 'Iptal orani: %' + Math.round(cancelled.length / monthOrders.length * 100) + '\n';
+      msg += 'Ortalama siparis tutari: ' + fMoney(Math.round(revenue / (delivered.length || 1))) + '\n\n';
+    }
+
+    // Sube bazli
+    const byBranch = {};
+    delivered.forEach(o => {
+      const b = o.branch || 'Belirsiz';
+      if (!byBranch[b]) byBranch[b] = { count: 0, rev: 0 };
+      byBranch[b].count++;
+      byBranch[b].rev += (o.discounted || o.price || 0);
+    });
+
+    if (Object.keys(byBranch).length > 0) {
+      msg += '<b>Sube Performansi:</b>\n';
+      Object.entries(byBranch).forEach(function(entry) {
+        msg += '  ' + entry[0] + ': ' + entry[1].count + ' teslim - ' + fMoney(entry[1].rev) + '\n';
+      });
+      msg += '\n';
+    }
+
+    // En cok siparis veren musteriler
+    const byCust = {};
+    monthOrders.forEach(o => {
+      if (!byCust[o.customer]) byCust[o.customer] = 0;
+      byCust[o.customer]++;
+    });
+    const topCust = Object.entries(byCust).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (topCust.length > 0) {
+      msg += '<b>En Cok Siparis Veren Musteriler:</b>\n';
+      topCust.forEach(function(entry, i) {
+        msg += '  ' + (i + 1) + '. ' + entry[0] + ': ' + entry[1] + ' siparis\n';
+      });
+      msg += '\n';
+    }
+
+    // Kaplama dagilimi
+    const byCoating = {};
+    monthOrders.forEach(o => {
+      const c = o.coating || 'Belirsiz';
+      if (!byCoating[c]) byCoating[c] = 0;
+      byCoating[c]++;
+    });
+    if (Object.keys(byCoating).length > 0) {
+      msg += '<b>Kaplama Dagilimi:</b>\n';
+      Object.entries(byCoating).sort((a, b) => b[1] - a[1]).forEach(function(entry) {
+        msg += '  ' + entry[0] + ': ' + entry[1] + ' siparis\n';
+      });
+    }
+
+    await sendTelegram(msg);
+  } catch (err) { console.error('Aylik rapor hatasi:', err.message); }
+}
+
 const app = express();
 app.use(express.json());
 app.use((req, res, next) => {
@@ -168,6 +260,7 @@ app.get('/', (req, res) => res.json({ status: 'BY Pasta Rapor Bot calisiyor', ti
 app.get('/test', async (req, res) => { try { await sendTelegram('BY Pasta Rapor Bot - Test mesaji, sistem calisiyor!'); res.json({ ok: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/gun-sonu', async (req, res) => { await gunSonuRaporu(); res.json({ ok: true }); });
 app.post('/haftalik', async (req, res) => { await haftalikRapor(); res.json({ ok: true }); });
+app.post('/aylik', async (req, res) => { await aylikRapor(); res.json({ ok: true }); });
 
 // CRON: Aksam 20:00 Turkiye
 cron.schedule('0 20 * * *', () => { console.log('CRON: Gun sonu raporu'); gunSonuRaporu(); }, { timezone: 'Europe/Istanbul' });
@@ -175,7 +268,14 @@ cron.schedule('0 20 * * *', () => { console.log('CRON: Gun sonu raporu'); gunSon
 // CRON: Pazartesi 09:00 Turkiye
 cron.schedule('0 9 * * 1', () => { console.log('CRON: Haftalik rapor'); haftalikRapor(); }, { timezone: 'Europe/Istanbul' });
 
+// CRON: Her ayin son gunu 22:00 Turkiye
+cron.schedule('0 22 28-31 * *', () => {
+  const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+  if (tomorrow.getDate() === 1) { console.log('CRON: Aylik rapor'); aylikRapor(); }
+}, { timezone: 'Europe/Istanbul' });
+
 app.listen(PORT, () => {
   console.log('BY Pasta Rapor Bot - Port: ' + PORT);
-  console.log('Cron: Aksam 20:00 (gun sonu), Pazartesi 09:00 (haftalik)');
+  console.log('Cron: Aksam 20:00 (gun sonu), Pazartesi 09:00 (haftalik), Ayin son gunu 22:00 (aylik)');
 });
