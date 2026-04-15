@@ -56,7 +56,7 @@ async function gunSonuRaporu() {
   console.log('Gun sonu raporu calisiyor...');
   try {
     const orders = await loadData('byp_orders');
-    if (!orders) { await sendTelegram('<b>Gun Sonu Raporu</b>\nVeri okunamadi.'); return; }
+    if (!orders) { await sendTelegram('📊 <b>Gün Sonu Raporu</b>\nVeri okunamadı.'); return; }
 
     const today = new Date().toISOString().split('T')[0];
     const todayCreated = orders.filter(o => o.createdAt && o.createdAt.split('T')[0] === today);
@@ -68,19 +68,19 @@ async function gunSonuRaporu() {
     const stillWaiting = orders.filter(o => o.status === 'bekliyor');
     const stillInProd = orders.filter(o => o.status === 'uretimde');
 
-    let msg = '<b>BY Pasta - Gun Sonu Raporu</b>\n';
-    msg += fDate(today) + '\n\n';
-    msg += 'Bugun alinan: <b>' + todayCreated.length + '</b> siparis\n';
-    msg += 'Teslim edilen: <b>' + todayDelivered.length + '</b>\n';
-    msg += 'Iptal edilen: <b>' + todayCancelled.length + '</b>\n';
-    msg += 'Teslim edilemeyen: <b>' + todayUndelivered.length + '</b>\n\n';
-    msg += 'Gunluk ciro: <b>' + fMoney(revenue) + '</b>\n';
-    msg += 'Tahsil edilen: ' + fMoney(collected) + '\n';
-    if (revenue - collected > 0) msg += 'Kalan bakiye: ' + fMoney(revenue - collected) + '\n';
+    let msg = '📊 <b>By Pasta — Gün Sonu Raporu</b>\n';
+    msg += '📅 ' + fDate(today) + '\n\n';
+    msg += '🎂 Bugün alınan: <b>' + todayCreated.length + '</b> sipariş\n';
+    msg += '✅ Teslim edilen: <b>' + todayDelivered.length + '</b>\n';
+    msg += '❌ İptal edilen: <b>' + todayCancelled.length + '</b>\n';
+    msg += '⚠️ Teslim edilemeyen: <b>' + todayUndelivered.length + '</b>\n\n';
+    msg += '💰 Günlük ciro: <b>' + fMoney(revenue) + '</b>\n';
+    msg += '💳 Tahsil edilen: ' + fMoney(collected) + '\n';
+    if (revenue - collected > 0) msg += '📌 Kalan bakiye: ' + fMoney(revenue - collected) + '\n';
     msg += '\n';
 
     if (stillWaiting.length > 0 || stillInProd.length > 0) {
-      msg += 'Bekleyen: ' + stillWaiting.length + ' - Uretimde: ' + stillInProd.length + '\n';
+      msg += '⏳ Bekleyen: ' + stillWaiting.length + ' — 🔨 Üretimde: ' + stillInProd.length + '\n';
     }
 
     const byBranch = {};
@@ -92,30 +92,30 @@ async function gunSonuRaporu() {
     });
 
     if (Object.keys(byBranch).length > 0) {
-      msg += '\n<b>Sube Performansi:</b>\n';
+      msg += '\n🏪 <b>Şube Performansı:</b>\n';
       Object.entries(byBranch).forEach(function(entry) {
-        msg += '  ' + entry[0] + ': ' + entry[1].count + ' teslim - ' + fMoney(entry[1].rev) + '\n';
+        msg += '  • ' + entry[0] + ': ' + entry[1].count + ' teslim — ' + fMoney(entry[1].rev) + '\n';
       });
     }
 
     if (todayCancelled.length > 0) {
-      msg += '\n<b>Iptal Detaylari:</b>\n';
-      todayCancelled.forEach(o => { msg += '  ' + o.orderNo + ' - ' + o.customer + ': ' + (o.cancelReason || '-') + '\n'; });
+      msg += '\n❌ <b>İptal Detayları:</b>\n';
+      todayCancelled.forEach(o => { msg += '  • ' + o.orderNo + ' — ' + o.customer + ': ' + (o.cancelReason || '-') + '\n'; });
     }
 
     if (todayUndelivered.length > 0) {
-      msg += '\n<b>Teslim Edilemedi:</b>\n';
-      todayUndelivered.forEach(o => { msg += '  ' + o.orderNo + ' - ' + o.customer + ': ' + (o.undeliveredReason || '-') + '\n'; });
+      msg += '\n⚠️ <b>Teslim Edilemedi:</b>\n';
+      todayUndelivered.forEach(o => { msg += '  • ' + o.orderNo + ' — ' + o.customer + ': ' + (o.undeliveredReason || '-') + '\n'; });
     }
 
     // Geri bildirimler
     const todayFeedback = orders.filter(o => o.feedbackAt && o.feedbackAt.split('T')[0] === today && o.feedback);
     if (todayFeedback.length > 0) {
-      msg += '\n<b>Musteri Geri Bildirimleri:</b>\n';
-      todayFeedback.forEach(o => { msg += '  ' + o.orderNo + ' - ' + o.customer + ': ' + o.feedback + '\n'; });
+      msg += '\n📝 <b>Tezgahtar Notları:</b>\n';
+      todayFeedback.forEach(o => { msg += '  • ' + o.orderNo + ' — ' + o.customer + ': ' + o.feedback + '\n'; });
     }
 
-    msg += '\nIyi aksamlar!';
+    msg += '\n🌙 İyi akşamlar!';
     await sendTelegram(msg);
   } catch (err) { console.error('Gun sonu raporu hatasi:', err.message); }
 }
@@ -125,7 +125,7 @@ async function haftalikRapor() {
   console.log('Haftalik rapor calisiyor...');
   try {
     const orders = await loadData('byp_orders');
-    if (!orders) { await sendTelegram('<b>Haftalik Rapor</b>\nVeri okunamadi.'); return; }
+    if (!orders) { await sendTelegram('📈 <b>Haftalık Rapor</b>\nVeri okunamadı.'); return; }
 
     const now = new Date();
     const day = now.getDay() || 7;
@@ -139,15 +139,15 @@ async function haftalikRapor() {
     const cancelled = weekOrders.filter(o => o.status === 'iptal');
     const revenue = delivered.reduce((s, o) => s + (o.discounted || o.price || 0), 0);
 
-    let msg = '<b>BY Pasta - Haftalik Rapor</b>\n';
-    msg += fDate(startDate) + ' - ' + fDate(endDate) + '\n\n';
-    msg += 'Toplam siparis: <b>' + weekOrders.length + '</b>\n';
-    msg += 'Teslim edilen: <b>' + delivered.length + '</b>\n';
-    msg += 'Iptal edilen: <b>' + cancelled.length + '</b>\n';
-    msg += 'Haftalik ciro: <b>' + fMoney(revenue) + '</b>\n';
+    let msg = '📈 <b>By Pasta — Haftalık Rapor</b>\n';
+    msg += '📅 ' + fDate(startDate) + ' — ' + fDate(endDate) + '\n\n';
+    msg += '🎂 Toplam sipariş: <b>' + weekOrders.length + '</b>\n';
+    msg += '✅ Teslim edilen: <b>' + delivered.length + '</b>\n';
+    msg += '❌ İptal edilen: <b>' + cancelled.length + '</b>\n';
+    msg += '💰 Haftalık ciro: <b>' + fMoney(revenue) + '</b>\n';
     if (weekOrders.length > 0) {
-      msg += 'Iptal orani: %' + Math.round(cancelled.length / weekOrders.length * 100) + '\n';
-      msg += 'Teslim orani: %' + Math.round(delivered.length / weekOrders.length * 100) + '\n';
+      msg += '📉 İptal oranı: %' + Math.round(cancelled.length / weekOrders.length * 100) + '\n';
+      msg += '📈 Teslim oranı: %' + Math.round(delivered.length / weekOrders.length * 100) + '\n';
     }
 
     await sendTelegram(msg);
@@ -159,7 +159,7 @@ async function aylikRapor() {
   console.log('Aylik rapor calisiyor...');
   try {
     const orders = await loadData('byp_orders');
-    if (!orders) { await sendTelegram('<b>Aylik Rapor</b>\nVeri okunamadi.'); return; }
+    if (!orders) { await sendTelegram('📅 <b>Aylık Rapor</b>\nVeri okunamadı.'); return; }
 
     const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
     const year = now.getFullYear();
@@ -175,28 +175,28 @@ async function aylikRapor() {
     const revenue = delivered.reduce((s, o) => s + (o.discounted || o.price || 0), 0);
     const collected = delivered.reduce((s, o) => s + (o.paid || 0), 0);
 
-    let msg = '<b>BY Pasta - Aylik Rapor</b>\n';
-    msg += ayAdi + '\n\n';
-    msg += '<b>Genel Ozet:</b>\n';
-    msg += 'Toplam siparis: <b>' + monthOrders.length + '</b>\n';
-    msg += 'Teslim edilen: <b>' + delivered.length + '</b>\n';
-    msg += 'Iptal edilen: <b>' + cancelled.length + '</b>\n';
-    msg += 'Teslim edilemeyen: <b>' + undelivered.length + '</b>\n\n';
+    let msg = '📅 <b>By Pasta — Aylık Rapor</b>\n';
+    msg += '🗓️ ' + ayAdi + '\n\n';
+    msg += '📊 <b>Genel Özet:</b>\n';
+    msg += '🎂 Toplam sipariş: <b>' + monthOrders.length + '</b>\n';
+    msg += '✅ Teslim edilen: <b>' + delivered.length + '</b>\n';
+    msg += '❌ İptal edilen: <b>' + cancelled.length + '</b>\n';
+    msg += '⚠️ Teslim edilemeyen: <b>' + undelivered.length + '</b>\n\n';
 
-    msg += '<b>Ciro Bilgileri:</b>\n';
-    msg += 'Aylik ciro: <b>' + fMoney(revenue) + '</b>\n';
-    msg += 'Tahsil edilen: ' + fMoney(collected) + '\n';
-    if (revenue - collected > 0) msg += 'Kalan bakiye: ' + fMoney(revenue - collected) + '\n';
+    msg += '💰 <b>Ciro Bilgileri:</b>\n';
+    msg += '💵 Aylık ciro: <b>' + fMoney(revenue) + '</b>\n';
+    msg += '💳 Tahsil edilen: ' + fMoney(collected) + '\n';
+    if (revenue - collected > 0) msg += '📌 Kalan bakiye: ' + fMoney(revenue - collected) + '\n';
     msg += '\n';
 
     if (monthOrders.length > 0) {
-      msg += '<b>Oranlar:</b>\n';
-      msg += 'Teslim orani: %' + Math.round(delivered.length / monthOrders.length * 100) + '\n';
-      msg += 'Iptal orani: %' + Math.round(cancelled.length / monthOrders.length * 100) + '\n';
-      msg += 'Ortalama siparis tutari: ' + fMoney(Math.round(revenue / (delivered.length || 1))) + '\n\n';
+      msg += '📈 <b>Oranlar:</b>\n';
+      msg += '✅ Teslim oranı: %' + Math.round(delivered.length / monthOrders.length * 100) + '\n';
+      msg += '❌ İptal oranı: %' + Math.round(cancelled.length / monthOrders.length * 100) + '\n';
+      msg += '💰 Ortalama sipariş tutarı: ' + fMoney(Math.round(revenue / (delivered.length || 1))) + '\n\n';
     }
 
-    // Sube bazli
+    // Şube bazlı
     const byBranch = {};
     delivered.forEach(o => {
       const b = o.branch || 'Belirsiz';
@@ -206,14 +206,14 @@ async function aylikRapor() {
     });
 
     if (Object.keys(byBranch).length > 0) {
-      msg += '<b>Sube Performansi:</b>\n';
+      msg += '🏪 <b>Şube Performansı:</b>\n';
       Object.entries(byBranch).forEach(function(entry) {
-        msg += '  ' + entry[0] + ': ' + entry[1].count + ' teslim - ' + fMoney(entry[1].rev) + '\n';
+        msg += '  • ' + entry[0] + ': ' + entry[1].count + ' teslim — ' + fMoney(entry[1].rev) + '\n';
       });
       msg += '\n';
     }
 
-    // En cok siparis veren musteriler
+    // En çok sipariş veren müşteriler
     const byCust = {};
     monthOrders.forEach(o => {
       if (!byCust[o.customer]) byCust[o.customer] = 0;
@@ -221,14 +221,15 @@ async function aylikRapor() {
     });
     const topCust = Object.entries(byCust).sort((a, b) => b[1] - a[1]).slice(0, 5);
     if (topCust.length > 0) {
-      msg += '<b>En Cok Siparis Veren Musteriler:</b>\n';
+      msg += '👑 <b>En Çok Sipariş Veren Müşteriler:</b>\n';
       topCust.forEach(function(entry, i) {
-        msg += '  ' + (i + 1) + '. ' + entry[0] + ': ' + entry[1] + ' siparis\n';
+        const medal = ['🥇','🥈','🥉','4️⃣','5️⃣'][i] || (i+1)+'.';
+        msg += '  ' + medal + ' ' + entry[0] + ': ' + entry[1] + ' sipariş\n';
       });
       msg += '\n';
     }
 
-    // Kaplama dagilimi
+    // Kaplama dağılımı
     const byCoating = {};
     monthOrders.forEach(o => {
       const c = o.coating || 'Belirsiz';
@@ -236,9 +237,9 @@ async function aylikRapor() {
       byCoating[c]++;
     });
     if (Object.keys(byCoating).length > 0) {
-      msg += '<b>Kaplama Dagilimi:</b>\n';
+      msg += '🍰 <b>Kaplama Dağılımı:</b>\n';
       Object.entries(byCoating).sort((a, b) => b[1] - a[1]).forEach(function(entry) {
-        msg += '  ' + entry[0] + ': ' + entry[1] + ' siparis\n';
+        msg += '  • ' + entry[0] + ': ' + entry[1] + ' sipariş\n';
       });
     }
 
@@ -252,18 +253,16 @@ async function dogumGunuBildirimi() {
   try {
     const bdayDb = await loadData('byp_bday_db');
     if (!bdayDb || !bdayDb.length) {
-      await sendTelegram('<b>Dogum Gunu Bildirimi</b>\nKayitli dogum gunu verisi bulunamadi.');
+      await sendTelegram('🎂 <b>Doğum Günü Bildirimi</b>\nKayıtlı doğum günü verisi bulunamadı.');
       return;
     }
 
     const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
-    const currentMonth = now.getMonth(); // 0-11
+    const currentMonth = now.getMonth();
     const ayAdi = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
 
-    // Bu ay dogum gunu olanlar
     const thisMonth = [];
     bdayDb.forEach(function(entry) {
-      // Ana kisi
       if (entry.main && entry.main.birthday) {
         const bday = new Date(entry.main.birthday);
         if (bday.getMonth() === currentMonth) {
@@ -276,7 +275,6 @@ async function dogumGunuBildirimi() {
           });
         }
       }
-      // Aile uyeleri
       if (entry.family && Array.isArray(entry.family)) {
         entry.family.forEach(function(f) {
           if (f.birthday) {
@@ -288,7 +286,7 @@ async function dogumGunuBildirimi() {
                 day: fbday.getDate(),
                 birthday: fbday.toLocaleDateString('tr-TR', {day:'numeric', month:'long'}),
                 orderNo: entry.orderNo || '-',
-                relation: '(aile uyesi: ' + (entry.main?.name || entry.customer || '') + ')'
+                relation: '(aile üyesi: ' + (entry.main?.name || entry.customer || '') + ')'
               });
             }
           }
@@ -297,25 +295,24 @@ async function dogumGunuBildirimi() {
     });
 
     if (thisMonth.length === 0) {
-      await sendTelegram('<b>Dogum Gunu Bildirimi</b>\n' + ayAdi + '\n\nBu ay dogum gunu olan kayitli musteri bulunmadi.');
+      await sendTelegram('🎂 <b>Doğum Günü Bildirimi</b>\n🗓️ ' + ayAdi + '\n\nBu ay doğum günü olan kayıtlı müşteri bulunmadı.');
       return;
     }
 
-    // Gune gore sirala
     thisMonth.sort(function(a, b) { return a.day - b.day; });
 
-    let msg = '<b>BY Pasta - Dogum Gunu Bildirimi</b>\n';
-    msg += ayAdi + '\n\n';
-    msg += 'Bu ay <b>' + thisMonth.length + '</b> kisinin dogum gunu var:\n\n';
+    let msg = '🎂 <b>By Pasta — Doğum Günü Bildirimi</b>\n';
+    msg += '🗓️ ' + ayAdi + '\n\n';
+    msg += '🎉 Bu ay <b>' + thisMonth.length + '</b> kişinin doğum günü var:\n\n';
 
     thisMonth.forEach(function(p, i) {
-      msg += (i + 1) + '. <b>' + p.name + '</b> — ' + p.birthday + '\n';
-      msg += '   Tel: ' + p.phone;
+      msg += '🎈 ' + (i + 1) + '. <b>' + p.name + '</b> — ' + p.birthday + '\n';
+      msg += '   📱 ' + p.phone;
       if (p.relation) msg += ' ' + p.relation;
       msg += '\n\n';
     });
 
-    msg += 'Musterilerinize dogum gunu surprizi yapmayi unutmayin!';
+    msg += '🎁 Müşterilerinize doğum günü sürprizi yapmayı unutmayın!';
 
     await sendTelegram(msg);
   } catch (err) { console.error('Dogum gunu bildirimi hatasi:', err.message); }
@@ -331,8 +328,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (req, res) => res.json({ status: 'BY Pasta Rapor Bot calisiyor', time: new Date().toISOString() }));
-app.get('/test', async (req, res) => { try { await sendTelegram('BY Pasta Rapor Bot - Test mesaji, sistem calisiyor!'); res.json({ ok: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
+app.get('/', (req, res) => res.json({ status: 'By Pasta Rapor Bot çalışıyor', time: new Date().toISOString() }));
+app.get('/test', async (req, res) => { try { await sendTelegram('✅ By Pasta Rapor Bot — Test mesajı, sistem çalışıyor!'); res.json({ ok: true }); } catch (err) { res.status(500).json({ error: err.message }); } });
 app.post('/gun-sonu', async (req, res) => { await gunSonuRaporu(); res.json({ ok: true }); });
 app.post('/haftalik', async (req, res) => { await haftalikRapor(); res.json({ ok: true }); });
 app.post('/aylik', async (req, res) => { await aylikRapor(); res.json({ ok: true }); });
