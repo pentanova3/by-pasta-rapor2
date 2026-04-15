@@ -58,7 +58,7 @@ async function gunSonuRaporu() {
     const orders = await loadData('byp_orders');
     if (!orders) { await sendTelegram('📊 <b>Gün Sonu Raporu</b>\nVeri okunamadı.'); return; }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'})).toISOString().split('T')[0];
     const todayCreated = orders.filter(o => o.createdAt && o.createdAt.split('T')[0] === today);
     const todayDelivered = orders.filter(o => o.delivAt && o.delivAt.split('T')[0] === today && o.status === 'teslim');
     const todayCancelled = orders.filter(o => o.cancelledAt && o.cancelledAt.split('T')[0] === today && o.status === 'iptal');
@@ -127,7 +127,7 @@ async function haftalikRapor() {
     const orders = await loadData('byp_orders');
     if (!orders) { await sendTelegram('📈 <b>Haftalık Rapor</b>\nVeri okunamadı.'); return; }
 
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString('en-US', {timeZone:'Europe/Istanbul'}));
     const day = now.getDay() || 7;
     const mon = new Date(now); mon.setDate(now.getDate() - day - 6);
     const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
