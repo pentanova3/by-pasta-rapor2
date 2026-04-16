@@ -352,6 +352,6 @@ cron.schedule('0 22 28-31 * *', () => {
 cron.schedule('0 9 1 * *', () => { console.log('CRON: Dogum gunu bildirimi'); dogumGunuBildirimi(); }, { timezone: 'Europe/Istanbul' });
 
 app.listen(PORT, () => {
-  console.log('BY Pasta Rapor Bot - Port: ' + PORT);
+  console.log('By Pasta Rapor Bot - Port: ' + PORT);
   console.log('Cron: 20:00 gun sonu, Pzt 09:00 haftalik, Ayin sonu 22:00 aylik, Ayin 1i 09:00 dogum gunu');
 });
